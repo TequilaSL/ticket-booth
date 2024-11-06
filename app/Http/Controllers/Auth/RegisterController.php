@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Admins;
 use App\AffiliateCodes;
 use App\Country;
 use App\Driver;
@@ -17,12 +18,20 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Log;
 
 class RegisterController extends ValidationController
 {
     public function __construct()
     {
         parent::__construct();
+    }
+
+    public function getAllUser()
+    {
+        $users = Admins::select('id', 'user_id', 'ip')->get();
+
+        return response()->json($users, 200);
     }
 
     public static function store(array $data)
@@ -54,7 +63,7 @@ class RegisterController extends ValidationController
             $vals['password'] = 'required|string|min:5';
         }
         if (!$ignoreCaptcha) {
-            $vals['g-recaptcha-response'] = 'required';
+            $vals['g-recaptcha-response'] = 'nullable';
         }
         return $vals;
     }
@@ -72,7 +81,9 @@ class RegisterController extends ValidationController
 
     public function __invoke(Request $request)
     {
-        $data = $request->only('name', 'email', 'password', 'phone_number', 'affiliate_code', 'gender_id', 'g-recaptcha-response');
+        dd($request);
+        // $data = $request->only('name', 'email', 'password', 'phone_number', 'affiliate_code', 'gender_id', 'g-recaptcha-response');
+        $data = $request->only('name', 'email', 'password', 'phone_number', 'affiliate_code', 'gender_id');
         $validator = $this->validator($data);
         $errors = $validator->errors();
         if ($validator->fails()) {
@@ -97,7 +108,8 @@ class RegisterController extends ValidationController
         }
 
 
-        $assignable = array_merge($assignable, ['name', 'email', 'password', 'phone_number', 'affiliate_code', 'g-recaptcha-response']);
+        // $assignable = array_merge($assignable, ['name', 'email', 'password', 'phone_number', 'affiliate_code', 'g-recaptcha-response']);
+        $assignable = array_merge($assignable, ['name', 'email', 'password', 'phone_number', 'affiliate_code']);
 
         $data['user'] = $request->only($assignable);
         if ($ignoreCaptcha) {
@@ -109,9 +121,9 @@ class RegisterController extends ValidationController
         $response = ValidationController::response($this->validator($data['user'], null, $ignoreCaptcha, $ignorePassword), \Lang::get('auth.registration_successful'));
         if (!$ignoreCaptcha) {
             if ($response->original['status'] == 1) {
-                if (!$this->validateRecaptcha($data['user']['g-recaptcha-response'])) {
-                    $response->original = ['status' => 0, 'text' => \Lang::get('validation.recaptcha_verification_failed')];
-                }
+                // if (!$this->validateRecaptcha($data['user']['g-recaptcha-response'])) {
+                //     $response->original = ['status' => 0, 'text' => \Lang::get('validation.recaptcha_verification_failed')];
+                // }
             }
             unset($data['user']['g-recaptcha-response']);
         }
